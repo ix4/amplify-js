@@ -13,6 +13,7 @@ import {
 } from '../src/types';
 import { ExclusiveStorage as StorageType } from '../src/storage/storage';
 import Observable from 'zen-observable-ts';
+import { Predicates } from '../src/predicates';
 
 let initSchema: typeof initSchemaType;
 let DataStore: typeof DataStoreType;
@@ -34,6 +35,13 @@ beforeEach(() => {
 	({ initSchema, DataStore } = require('../src/datastore/datastore'));
 });
 
+const nameOf = <T>(name: keyof T) => name;
+
+/**
+ * Does nothing intentionally, we care only about type checking
+ */
+const expectType: <T>(param: T) => void = () => { };
+
 describe('DataStore tests', () => {
 	describe('initSchema tests', () => {
 		test('Model class is created', () => {
@@ -43,8 +51,7 @@ describe('DataStore tests', () => {
 
 			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
 
-			let property: keyof PersistentModelConstructor<any> = 'copyOf';
-			expect(Model).toHaveProperty(property);
+			expect(Model).toHaveProperty(nameOf<PersistentModelConstructor<any>>('copyOf'));
 
 			expect(typeof Model.copyOf).toBe('function');
 		});
@@ -79,7 +86,10 @@ describe('DataStore tests', () => {
 
 			expect(model.id).toBeDefined();
 
-			// local models use something like a uuid v1, see https://github.com/kelektiv/node-uuid/issues/75#issuecomment-483756623
+			/**
+			 * local models use something like a uuid v1
+			 * see https://github.com/kelektiv/node-uuid/issues/75#issuecomment-483756623
+			 */
 			expect(
 				uuidValidate(model.id.replace(/^(.{4})-(.{4})-(.{8})/, '$3-$2-$1'), 1)
 			).toBe(true);
@@ -100,8 +110,7 @@ describe('DataStore tests', () => {
 
 			const { Metadata } = classes;
 
-			let property: keyof PersistentModelConstructor<any> = 'copyOf';
-			expect(Metadata).not.toHaveProperty(property);
+			expect(Metadata).not.toHaveProperty(nameOf<PersistentModelConstructor<any>>('copyOf'));
 		});
 
 		test('Non @model class can be instantiated', () => {
@@ -267,6 +276,51 @@ describe('DataStore tests', () => {
 		await expect(DataStore.save(<any>metadata)).rejects.toThrow(
 			'Object is not an instance of a valid model'
 		);
+	});
+
+	describe("Type definitions", () => {
+		test("query types are correct", async () => {
+			let model: Model;
+
+			jest.resetModules();
+			jest.doMock('../src/storage/storage', () => {
+				const mock = jest.fn().mockImplementation(() => ({
+					runExclusive: jest.fn(() => [model]),
+					query: jest.fn(() => [model]),
+				}));
+
+				(<any>mock).getNamespace = () => ({ models: {} });
+
+				return { ExclusiveStorage: mock };
+			});
+			({ initSchema, DataStore } = require('../src/datastore/datastore'));
+
+			const classes = initSchema(testSchema());
+
+			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
+
+			model = new Model({
+				field1: 'Some value',
+			});
+
+			const allModels = await DataStore.query(Model);
+			expectType<Model[]>(allModels);
+
+			const oneModelById = await DataStore.query(Model, 'someid');
+			expectType<Model>(oneModelById);
+
+			const [oneModelByIdWithCriteria] = await DataStore.query(Model, c => c.id('eq', 'someid'));
+			expectType<Model>(oneModelByIdWithCriteria);
+
+			const [oneModelWithCriteria] = await DataStore.query(Model, c => c.field1('eq', 'somecontent'));
+			expectType<Model>(oneModelWithCriteria);
+
+			const multiModelWithCriteria2 = await DataStore.query(Model, c => c.field1('contains', 'something'));
+			expectType<Model[]>(multiModelWithCriteria2);
+
+			const allModelsPaginatedAwait = await DataStore.query(Model, Predicates.ALL, { page: 0, limit: 20 });
+			expectType<Model[]>(allModelsPaginatedAwait);
+		});
 	});
 });
 
