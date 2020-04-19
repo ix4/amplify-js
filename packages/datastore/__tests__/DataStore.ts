@@ -402,8 +402,8 @@ describe('DataStore tests', () => {
 				expectType<Model>(element);
 			});
 
-			// subscribe to model instance using generic type
-			DataStore.observe<typeof Model>(model).subscribe(({ element, model }) => {
+			// subscribe to model
+			DataStore.observe<Model>(Model).subscribe(({ element, model }) => {
 				expectType<PersistentModelConstructor<Model>>(model);
 				expectType<Model>(element);
 			});

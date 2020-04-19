@@ -289,9 +289,9 @@ const createModelClass = <T extends PersistentModel>(
 						_id !== null && _id !== undefined
 							? _id
 							: modelDefinition.syncable
-								? uuid4()
-								: // Transform UUID v1 into a lexicographically sortable string for non-syncable models
-								uuid1().replace(/^(.{8})-(.{4})-(.{4})/, '$3-$2-$1');
+							? uuid4()
+							: // Transform UUID v1 into a lexicographically sortable string for non-syncable models
+							  uuid1().replace(/^(.{8})-(.{4})-(.{4})/, '$3-$2-$1');
 
 					draft.id = id;
 
@@ -403,179 +403,190 @@ const remove: {
 	modelOrConstructor: T | PersistentModelConstructor<T>,
 	idOrCriteria?: string | ProducerModelPredicate<T> | typeof PredicateAll
 ) => {
-		await start();
-		let condition: ModelPredicate<T>;
+	await start();
+	let condition: ModelPredicate<T>;
 
-		if (!modelOrConstructor) {
-			const msg = 'Model or Model Constructor required';
-			logger.error(msg, { modelOrConstructor });
+	if (!modelOrConstructor) {
+		const msg = 'Model or Model Constructor required';
+		logger.error(msg, { modelOrConstructor });
 
-			throw new Error(msg);
-		}
+		throw new Error(msg);
+	}
 
-		if (isValidModelConstructor(modelOrConstructor)) {
-			const modelConstructor = modelOrConstructor;
+	if (isValidModelConstructor(modelOrConstructor)) {
+		const modelConstructor = modelOrConstructor;
 
-			if (!idOrCriteria) {
-				const msg =
-					'Id to delete or criteria required. Do you want to delete all? Pass Predicates.ALL';
-				logger.error(msg, { idOrCriteria });
-
-				throw new Error(msg);
-			}
-
-			if (typeof idOrCriteria === 'string') {
-				condition = ModelPredicateCreator.createForId<T>(
-					getModelDefinition(modelConstructor),
-					idOrCriteria
-				);
-			} else {
-				condition = ModelPredicateCreator.createFromExisting(
-					getModelDefinition(modelConstructor),
-					/**
-					 * idOrCriteria is always a ProducerModelPredicate<T>, never a symbol.
-					 * The symbol is used only for typing purposes. e.g. see Predicates.ALL
-					 */
-					idOrCriteria as ProducerModelPredicate<T>
-				);
-
-				if (!condition || !ModelPredicateCreator.isValidPredicate(condition)) {
-					const msg =
-						'Criteria required. Do you want to delete all? Pass Predicates.ALL';
-					logger.error(msg, { condition });
-
-					throw new Error(msg);
-				}
-			}
-
-			const [deleted] = await storage.delete(modelConstructor, condition);
-
-			return deleted;
-		} else {
-			const model = modelOrConstructor;
-			const modelConstructor = Object.getPrototypeOf(model || {})
-				.constructor as PersistentModelConstructor<T>;
-
-			if (!isValidModelConstructor(modelConstructor)) {
-				const msg = 'Object is not an instance of a valid model';
-				logger.error(msg, { model });
-
-				throw new Error(msg);
-			}
-
-			const modelDefinition = getModelDefinition(modelConstructor);
-
-			const idPredicate = ModelPredicateCreator.createForId<T>(
-				modelDefinition,
-				model.id
-			);
-
-			if (idOrCriteria) {
-				if (typeof idOrCriteria !== 'function') {
-					const msg = 'Invalid criteria';
-					logger.error(msg, { idOrCriteria });
-
-					throw new Error(msg);
-				}
-
-				condition = idOrCriteria(idPredicate);
-			} else {
-				condition = idPredicate;
-			}
-
-			const [[deleted]] = await storage.delete(model, condition);
-
-			return deleted;
-		}
-	};
-
-const observe: {
-	<
-		C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
-		T = PersistentModel
-		>(): Observable<SubscriptionMessage<C, T>>;
-	<
-		C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
-		T = PersistentModel
-		>(obj: T): Observable<SubscriptionMessage<C, T>>;
-	// <
-	// 	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
-	// 	T = PersistentModel
-	// 	>(
-	// 	obj: T
-	// ): Observable<SubscriptionMessage<C>>;
-	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
-	// 	modelConstructor: C,
-	// 	id: string
-	// ): Observable<SubscriptionMessage<T>>;
-	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
-	// 	modelConstructor: C
-	// ): Observable<SubscriptionMessage<T>>;
-	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
-	// 	modelConstructor: C,
-	// 	criteria: ProducerModelPredicate<T>
-	// ): Observable<SubscriptionMessage<T>>;
-} = <
-	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
-	T = PersistentModel
->(
-	modelConstructor?: C,
-	idOrCriteria?:
-		| string
-		| ProducerModelPredicate<
-			T extends PersistentModelConstructor<infer X> ? X : never
-		>
-) => {
-		let predicate: any; // TODO: Fix type
-		// let predicate: ModelPredicate<
-		// 	T extends PersistentModelConstructor<infer X> ? X : never
-		// >;
-
-		if (idOrCriteria !== undefined && modelConstructor === undefined) {
-			const msg = 'Cannot provide criteria without a modelConstructor';
-			logger.error(msg, idOrCriteria);
-			throw new Error(msg);
-		}
-
-		if (modelConstructor && !isValidModelConstructor(modelConstructor)) {
-			const msg = 'Constructor is not for a valid model';
-			logger.error(msg, { modelConstructor });
+		if (!idOrCriteria) {
+			const msg =
+				'Id to delete or criteria required. Do you want to delete all? Pass Predicates.ALL';
+			logger.error(msg, { idOrCriteria });
 
 			throw new Error(msg);
 		}
 
 		if (typeof idOrCriteria === 'string') {
-			predicate = ModelPredicateCreator.createForId<
-				T extends PersistentModelConstructor<infer X> ? X : never
-			>(getModelDefinition(modelConstructor), idOrCriteria);
+			condition = ModelPredicateCreator.createForId<T>(
+				getModelDefinition(modelConstructor),
+				idOrCriteria
+			);
 		} else {
-			predicate =
-				modelConstructor &&
-				ModelPredicateCreator.createFromExisting(
-					getModelDefinition(modelConstructor),
-					idOrCriteria
-				);
+			condition = ModelPredicateCreator.createFromExisting(
+				getModelDefinition(modelConstructor),
+				/**
+				 * idOrCriteria is always a ProducerModelPredicate<T>, never a symbol.
+				 * The symbol is used only for typing purposes. e.g. see Predicates.ALL
+				 */
+				idOrCriteria as ProducerModelPredicate<T>
+			);
+
+			if (!condition || !ModelPredicateCreator.isValidPredicate(condition)) {
+				const msg =
+					'Criteria required. Do you want to delete all? Pass Predicates.ALL';
+				logger.error(msg, { condition });
+
+				throw new Error(msg);
+			}
 		}
 
-		return new Observable<SubscriptionMessage<C, T>>(observer => {
-			let handle: ZenObservable.Subscription;
+		const [deleted] = await storage.delete(modelConstructor, condition);
 
-			(async () => {
-				await start();
+		return deleted;
+	} else {
+		const model = modelOrConstructor;
+		const modelConstructor = Object.getPrototypeOf(model || {})
+			.constructor as PersistentModelConstructor<T>;
 
-				handle = storage
-					.observe(modelConstructor, <any>predicate) // TODO: Fix type
-					.filter(({ model }) => namespaceResolver(model) === USER)
-					.subscribe(<any>observer); // TODO: Fix type
-			})();
+		if (!isValidModelConstructor(modelConstructor)) {
+			const msg = 'Object is not an instance of a valid model';
+			logger.error(msg, { model });
 
-			return () => {
-				if (handle) {
-					handle.unsubscribe();
-				}
-			};
-		});
-	};
+			throw new Error(msg);
+		}
+
+		const modelDefinition = getModelDefinition(modelConstructor);
+
+		const idPredicate = ModelPredicateCreator.createForId<T>(
+			modelDefinition,
+			model.id
+		);
+
+		if (idOrCriteria) {
+			if (typeof idOrCriteria !== 'function') {
+				const msg = 'Invalid criteria';
+				logger.error(msg, { idOrCriteria });
+
+				throw new Error(msg);
+			}
+
+			condition = idOrCriteria(idPredicate);
+		} else {
+			condition = idPredicate;
+		}
+
+		const [[deleted]] = await storage.delete(model, condition);
+
+		return deleted;
+	}
+};
+
+const observe: {
+	(): Observable<
+		SubscriptionMessage<
+			PersistentModelConstructor<PersistentModel>,
+			PersistentModel
+		>
+	>;
+	<
+		T extends PersistentModel = PersistentModel,
+		C extends PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+	>(
+		obj: T
+	): Observable<SubscriptionMessage<C, T>>;
+	<
+		T extends PersistentModel = PersistentModel,
+		C extends PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+	>(
+		modelConstructor: C,
+		id: string
+	): Observable<SubscriptionMessage<C, T>>;
+	<
+		T extends PersistentModel = PersistentModel,
+		C extends PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+	>(
+		modelConstructor: C
+	): Observable<SubscriptionMessage<C, T>>;
+	<
+		T extends PersistentModel = PersistentModel,
+		C extends PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+	>(
+		modelConstructor: C,
+		criteria: ProducerModelPredicate<T>
+	): Observable<SubscriptionMessage<C, T>>;
+} = <
+	T extends PersistentModel = PersistentModel,
+	C extends PersistentModelConstructor<
+		T extends PersistentModel ? T : never
+	> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+>(
+	modelConstructor?: C,
+	idOrCriteria?: string | ProducerModelPredicate<T>
+) => {
+	let predicate: ModelPredicate<T>;
+
+	if (idOrCriteria !== undefined && modelConstructor === undefined) {
+		const msg = 'Cannot provide criteria without a modelConstructor';
+		logger.error(msg, idOrCriteria);
+		throw new Error(msg);
+	}
+
+	if (modelConstructor && !isValidModelConstructor(modelConstructor)) {
+		const msg = 'Constructor is not for a valid model';
+		logger.error(msg, { modelConstructor });
+
+		throw new Error(msg);
+	}
+
+	if (typeof idOrCriteria === 'string') {
+		predicate = ModelPredicateCreator.createForId<T>(
+			getModelDefinition(modelConstructor),
+			idOrCriteria
+		);
+	} else {
+		predicate =
+			modelConstructor &&
+			ModelPredicateCreator.createFromExisting<T>(
+				getModelDefinition(modelConstructor),
+				idOrCriteria
+			);
+	}
+
+	return new Observable<SubscriptionMessage<C, T>>(observer => {
+		let handle: ZenObservable.Subscription;
+
+		(async () => {
+			await start();
+
+			handle = storage
+				.observe(modelConstructor, <any>predicate) // TODO: Fix type
+				.filter(({ model }) => namespaceResolver(model) === USER)
+				.subscribe(<any>observer); // TODO: Fix type
+		})();
+
+		return () => {
+			if (handle) {
+				handle.unsubscribe();
+			}
+		};
+	});
+};
 
 const query: {
 	<T extends PersistentModelConstructor<any>>(
@@ -588,8 +599,8 @@ const query: {
 		modelConstructor: T extends PersistentModelConstructor<any> ? T : never,
 		criteria?:
 			| ProducerModelPredicate<
-				T extends PersistentModelConstructor<infer X> ? X : never
-			>
+					T extends PersistentModelConstructor<infer X> ? X : never
+			  >
 			| typeof PredicateAll,
 		pagination?: PaginationInput
 	): Promise<
@@ -600,74 +611,74 @@ const query: {
 	idOrCriteria?: string | ProducerModelPredicate<T> | typeof PredicateAll,
 	pagination?: PaginationInput
 ) => {
-		await start();
-		if (!isValidModelConstructor(modelConstructor)) {
-			const msg = 'Constructor is not for a valid model';
-			logger.error(msg, { modelConstructor });
+	await start();
+	if (!isValidModelConstructor(modelConstructor)) {
+		const msg = 'Constructor is not for a valid model';
+		logger.error(msg, { modelConstructor });
 
-			throw new Error(msg);
+		throw new Error(msg);
+	}
+
+	if (typeof idOrCriteria === 'string') {
+		if (pagination !== undefined) {
+			logger.warn('Pagination is ignored when querying by id');
 		}
 
-		if (typeof idOrCriteria === 'string') {
-			if (pagination !== undefined) {
-				logger.warn('Pagination is ignored when querying by id');
-			}
+		const predicate = ModelPredicateCreator.createForId<T>(
+			getModelDefinition(modelConstructor),
+			idOrCriteria
+		);
+		const [result] = await storage.query(modelConstructor, predicate);
 
-			const predicate = ModelPredicateCreator.createForId<T>(
-				getModelDefinition(modelConstructor),
-				idOrCriteria
-			);
-			const [result] = await storage.query(modelConstructor, predicate);
-
-			if (result) {
-				return result;
-			}
-
-			return undefined;
+		if (result) {
+			return result;
 		}
 
-		/**
-		 * idOrCriteria is always a ProducerModelPredicate<T>, never a symbol.
-		 * The symbol is used only for typing purposes. e.g. see Predicates.ALL
-		 */
-		const criteria = idOrCriteria as ProducerModelPredicate<T>;
+		return undefined;
+	}
 
-		// Predicates.ALL means "all records", so no predicate (undefined)
-		const predicate = !isPredicatesAll(criteria)
-			? ModelPredicateCreator.createFromExisting(
+	/**
+	 * idOrCriteria is always a ProducerModelPredicate<T>, never a symbol.
+	 * The symbol is used only for typing purposes. e.g. see Predicates.ALL
+	 */
+	const criteria = idOrCriteria as ProducerModelPredicate<T>;
+
+	// Predicates.ALL means "all records", so no predicate (undefined)
+	const predicate = !isPredicatesAll(criteria)
+		? ModelPredicateCreator.createFromExisting(
 				getModelDefinition(modelConstructor),
 				criteria
-			)
-			: undefined;
+		  )
+		: undefined;
 
-		const { limit, page } = pagination || {};
+	const { limit, page } = pagination || {};
 
-		if (page !== undefined && limit === undefined) {
-			throw new Error('Limit is required when requesting a page');
+	if (page !== undefined && limit === undefined) {
+		throw new Error('Limit is required when requesting a page');
+	}
+
+	if (page !== undefined) {
+		if (typeof page !== 'number') {
+			throw new Error('Page should be a number');
 		}
 
-		if (page !== undefined) {
-			if (typeof page !== 'number') {
-				throw new Error('Page should be a number');
-			}
+		if (page < 0) {
+			throw new Error("Page can't be negative");
+		}
+	}
 
-			if (page < 0) {
-				throw new Error("Page can't be negative");
-			}
+	if (limit !== undefined) {
+		if (typeof limit !== 'number') {
+			throw new Error('Limit should be a number');
 		}
 
-		if (limit !== undefined) {
-			if (typeof limit !== 'number') {
-				throw new Error('Limit should be a number');
-			}
-
-			if (limit < 0) {
-				throw new Error("Limit can't be negative");
-			}
+		if (limit < 0) {
+			throw new Error("Limit can't be negative");
 		}
+	}
 
-		return storage.query(modelConstructor, predicate, pagination);
-	};
+	return storage.query(modelConstructor, predicate, pagination);
+};
 
 let sync: SyncEngine;
 let amplifyConfig: Record<string, any> = {};
