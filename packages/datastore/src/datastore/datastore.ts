@@ -490,56 +490,46 @@ const remove: {
 };
 
 const observe: {
+	// observe all models
 	(): Observable<
 		SubscriptionMessage<
 			PersistentModelConstructor<PersistentModel>,
 			PersistentModel
 		>
 	>;
-	<
-		T extends PersistentModel = PersistentModel,
-		C extends PersistentModelConstructor<
+
+	// observe a model instance
+	<T extends PersistentModel>(model: T): Observable<
+		SubscriptionMessage<
+			PersistentModelConstructor<T extends PersistentModel ? T : never>,
+			T
+		>
+	>;
+
+	// observe a model type w/optional criteria
+	<T extends PersistentModel>(
+		modelConstructor: PersistentModelConstructor<
 			T extends PersistentModel ? T : never
-		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
-	>(
-		obj: T
-	): Observable<SubscriptionMessage<C, T>>;
-	<
-		T extends PersistentModel = PersistentModel,
-		C extends PersistentModelConstructor<
-			T extends PersistentModel ? T : never
-		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
-	>(
-		modelConstructor: C,
-		id: string
-	): Observable<SubscriptionMessage<C, T>>;
-	<
-		T extends PersistentModel = PersistentModel,
-		C extends PersistentModelConstructor<
-			T extends PersistentModel ? T : never
-		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
-	>(
-		modelConstructor: C
-	): Observable<SubscriptionMessage<C, T>>;
-	<
-		T extends PersistentModel = PersistentModel,
-		C extends PersistentModelConstructor<
-			T extends PersistentModel ? T : never
-		> = PersistentModelConstructor<T extends PersistentModel ? T : never>
-	>(
-		modelConstructor: C,
-		criteria: ProducerModelPredicate<T>
-	): Observable<SubscriptionMessage<C, T>>;
+		>,
+		criteria?: string | ProducerModelPredicate<T>
+	): Observable<
+		SubscriptionMessage<
+			PersistentModelConstructor<T extends PersistentModel ? T : never>,
+			T
+		>
+	>;
 } = <
-	T extends PersistentModel = PersistentModel,
-	C extends PersistentModelConstructor<
-		T extends PersistentModel ? T : never
-	> = PersistentModelConstructor<T extends PersistentModel ? T : never>
+	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+	T extends PersistentModel = PersistentModel
 >(
-	modelConstructor?: C,
+	modelOrConstructor?: C,
 	idOrCriteria?: string | ProducerModelPredicate<T>
-) => {
+): Observable<SubscriptionMessage<C, T>> => {
 	let predicate: ModelPredicate<T>;
+	
+	const modelConstructor: C = modelOrConstructor && isValidModelConstructor(modelOrConstructor)
+		? modelOrConstructor
+		: undefined;
 
 	if (idOrCriteria !== undefined && modelConstructor === undefined) {
 		const msg = 'Cannot provide criteria without a modelConstructor';

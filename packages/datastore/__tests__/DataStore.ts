@@ -52,7 +52,9 @@ describe('DataStore tests', () => {
 
 			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
 
-			expect(Model).toHaveProperty(nameOf<PersistentModelConstructor<any>>('copyOf'));
+			expect(Model).toHaveProperty(
+				nameOf<PersistentModelConstructor<any>>('copyOf')
+			);
 
 			expect(typeof Model.copyOf).toBe('function');
 		});
@@ -111,7 +113,9 @@ describe('DataStore tests', () => {
 
 			const { Metadata } = classes;
 
-			expect(Metadata).not.toHaveProperty(nameOf<PersistentModelConstructor<any>>('copyOf'));
+			expect(Metadata).not.toHaveProperty(
+				nameOf<PersistentModelConstructor<any>>('copyOf')
+			);
 		});
 
 		test('Non @model class can be instantiated', () => {
@@ -279,8 +283,10 @@ describe('DataStore tests', () => {
 		);
 	});
 
-	describe("Type definitions", () => {
-		test("query types are correct", async () => {
+	describe('Type definitions', () => {
+		let Model: PersistentModelConstructor<Model>;
+
+		beforeEach(() => {
 			let model: Model;
 
 			jest.resetModules();
@@ -288,6 +294,7 @@ describe('DataStore tests', () => {
 				const mock = jest.fn().mockImplementation(() => ({
 					runExclusive: jest.fn(() => [model]),
 					query: jest.fn(() => [model]),
+					observe: jest.fn(() => Observable.from([]))
 				}));
 
 				(<any>mock).getNamespace = () => ({ models: {} });
@@ -298,130 +305,153 @@ describe('DataStore tests', () => {
 
 			const classes = initSchema(testSchema());
 
-			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
+			({ Model } = classes as { Model: PersistentModelConstructor<Model> });
 
 			model = new Model({
 				field1: 'Some value',
 			});
-
-			const allModels = await DataStore.query(Model);
-			expectType<Model[]>(allModels);
-
-			const oneModelById = await DataStore.query(Model, 'someid');
-			expectType<Model>(oneModelById);
-
-			const [oneModelByIdWithCriteria] = await DataStore.query(Model, c => c.id('eq', 'someid'));
-			expectType<Model>(oneModelByIdWithCriteria);
-
-			const [oneModelWithCriteria] = await DataStore.query(Model, c => c.field1('eq', 'somecontent'));
-			expectType<Model>(oneModelWithCriteria);
-
-			const multiModelWithCriteria2 = await DataStore.query(Model, c => c.field1('contains', 'something'));
-			expectType<Model[]>(multiModelWithCriteria2);
-
-			const allModelsPaginatedAwait = await DataStore.query(Model, Predicates.ALL, { page: 0, limit: 20 });
-			expectType<Model[]>(allModelsPaginatedAwait);
 		});
 
-		test("query types are correct (passing generic type)", async () => {
-			let model: Model;
-
-			jest.resetModules();
-			jest.doMock('../src/storage/storage', () => {
-				const mock = jest.fn().mockImplementation(() => ({
-					runExclusive: jest.fn(() => [model]),
-					query: jest.fn(() => [model]),
-				}));
-
-				(<any>mock).getNamespace = () => ({ models: {} });
-
-				return { ExclusiveStorage: mock };
+		describe('Query', () => {
+			test('query types are correct', async () => {
+				const allModels = await DataStore.query(Model);
+				expectType<Model[]>(allModels);
 			});
-			({ initSchema, DataStore } = require('../src/datastore/datastore'));
-
-			const classes = initSchema(testSchema());
-
-			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
-
-			model = new Model({
-				field1: 'Some value',
+			test('query types are correct', async () => {
+				const oneModelById = await DataStore.query(Model, 'someid');
+				expectType<Model>(oneModelById);
 			});
-
-			const allModels = await DataStore.query<typeof Model>(Model);
-			expectType<Model[]>(allModels);
-
-			const oneModelById = await DataStore.query<typeof Model>(Model, 'someid');
-			expectType<Model>(oneModelById);
-
-			const [oneModelByIdWithCriteria] = await DataStore.query<typeof Model>(Model, c => c.id('eq', 'someid'));
-			expectType<Model>(oneModelByIdWithCriteria);
-
-			const [oneModelWithCriteria] = await DataStore.query<typeof Model>(Model, c => c.field1('eq', 'somecontent'));
-			expectType<Model>(oneModelWithCriteria);
-
-			const multiModelWithCriteria2 = await DataStore.query<typeof Model>(Model, c => c.field1('contains', 'something'));
-			expectType<Model[]>(multiModelWithCriteria2);
-
-			const allModelsPaginatedAwait = await DataStore.query<typeof Model>(Model, Predicates.ALL, { page: 0, limit: 20 });
-			expectType<Model[]>(allModelsPaginatedAwait);
+			test('query types are correct', async () => {
+				const [oneModelByIdWithCriteria] = await DataStore.query(Model, c =>
+					c.id('eq', 'someid')
+				);
+				expectType<Model>(oneModelByIdWithCriteria);
+			});
+			test('query types are correct', async () => {
+				const [oneModelWithCriteria] = await DataStore.query(Model, c =>
+					c.field1('eq', 'somecontent')
+				);
+				expectType<Model>(oneModelWithCriteria);
+			});
+			test('query types are correct', async () => {
+				const multiModelWithCriteria2 = await DataStore.query(Model, c =>
+					c.field1('contains', 'something')
+				);
+				expectType<Model[]>(multiModelWithCriteria2);
+			});
+			test('query types are correct', async () => {
+				const allModelsPaginatedAwait = await DataStore.query(
+					Model,
+					Predicates.ALL,
+					{ page: 0, limit: 20 }
+				);
+				expectType<Model[]>(allModelsPaginatedAwait);
+			});
 		});
 
-		test("observe types are correct", async () => {
-			let model: Model;
-
-			jest.resetModules();
-			jest.doMock('../src/storage/storage', () => {
-				const mock = jest.fn().mockImplementation(() => ({
-					runExclusive: jest.fn(() => [model]),
-					query: jest.fn(() => [model]),
-				}));
-
-				(<any>mock).getNamespace = () => ({ models: {} });
-
-				return { ExclusiveStorage: mock };
+		describe('Query with generic type', () => {
+			test('query types are correct', async () => {
+				const allModels = await DataStore.query<typeof Model>(Model);
+				expectType<Model[]>(allModels);
 			});
-			({ initSchema, DataStore } = require('../src/datastore/datastore'));
-
-			const classes = initSchema(testSchema());
-
-			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
-
-			model = new Model({
-				field1: 'Some value',
+			test('query types are correct', async () => {
+				const oneModelById = await DataStore.query<typeof Model>(Model, 'someid');
+				expectType<Model>(oneModelById);
 			});
-
-			// subscribe to all models
-			DataStore.observe().subscribe(({ element, model }) => {
-				expectType<PersistentModelConstructor<PersistentModel>>(model);
-				expectType<PersistentModel>(element);
+			test('query types are correct', async () => {
+				const [oneModelByIdWithCriteria] = await DataStore.query<typeof Model>(Model, c =>
+					c.id('eq', 'someid')
+				);
+				expectType<Model>(oneModelByIdWithCriteria);
 			});
-
-			// subscribe to model instance
-			DataStore.observe(model).subscribe(({ element, model }) => {
-				expectType<PersistentModelConstructor<Model>>(model);
-				expectType<Model>(element);
+			test('query types are correct', async () => {
+				const [oneModelWithCriteria] = await DataStore.query<typeof Model>(Model, c =>
+					c.field1('eq', 'somecontent')
+				);
+				expectType<Model>(oneModelWithCriteria);
 			});
-
-			// subscribe to model
-			DataStore.observe<Model>(Model).subscribe(({ element, model }) => {
-				expectType<PersistentModelConstructor<Model>>(model);
-				expectType<Model>(element);
+			test('query types are correct', async () => {
+				const multiModelWithCriteria2 = await DataStore.query<typeof Model>(Model, c =>
+					c.field1('contains', 'something')
+				);
+				expectType<Model[]>(multiModelWithCriteria2);
 			});
+			test('query types are correct', async () => {
+				const allModelsPaginatedAwait = await DataStore.query<typeof Model>(
+					Model,
+					Predicates.ALL,
+					{ page: 0, limit: 20 }
+				);
+				expectType<Model[]>(allModelsPaginatedAwait);
+			});
+		});
 
-			// const oneModelById = await DataStore.query(Model, 'someid');
-			// expectType<Model>(oneModelById);
+		describe('Observe', () => {
+			test('subscribe to all models', async () => {
+				DataStore.observe().subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<PersistentModel>>(model);
+					expectType<PersistentModel>(element);
+				});
+			});
+			test('subscribe to model instance', async () => {
+				const model = new Model({ field1: 'somevalue' });
 
-			// const [oneModelByIdWithCriteria] = await DataStore.query(Model, c => c.id('eq', 'someid'));
-			// expectType<Model>(oneModelByIdWithCriteria);
+				DataStore.observe(model).subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model', async () => {
+				DataStore.observe(Model).subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model instance by id', async () => {
+				DataStore.observe(Model, 'some id').subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model with criteria', async () => {
+				DataStore.observe(Model, c => c.field1('ne', 'somevalue')).subscribe(
+					({ element, model }) => {
+						expectType<PersistentModelConstructor<Model>>(model);
+						expectType<Model>(element);
+					}
+				);
+			});
+		});
 
-			// const [oneModelWithCriteria] = await DataStore.query(Model, c => c.field1('eq', 'somecontent'));
-			// expectType<Model>(oneModelWithCriteria);
+		describe('Observe with generic type', () => {
+			test('subscribe to model instance', async () => {
+				const model = new Model({ field1: 'somevalue' });
 
-			// const multiModelWithCriteria2 = await DataStore.query(Model, c => c.field1('contains', 'something'));
-			// expectType<Model[]>(multiModelWithCriteria2);
-
-			// const allModelsPaginatedAwait = await DataStore.query(Model, Predicates.ALL, { page: 0, limit: 20 });
-			// expectType<Model[]>(allModelsPaginatedAwait);
+				DataStore.observe<Model>(model).subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model', async () => {
+				DataStore.observe<Model>(Model).subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model instance by id', async () => {
+				DataStore.observe<Model>(Model, 'some id').subscribe(({ element, model }) => {
+					expectType<PersistentModelConstructor<Model>>(model);
+					expectType<Model>(element);
+				});
+			});
+			test('subscribe to model with criteria', async () => {
+				DataStore.observe<Model>(Model, c => c.field1('ne', 'somevalue')).subscribe(
+					({ element, model }) => {
+						expectType<PersistentModelConstructor<Model>>(model);
+						expectType<Model>(element);
+					}
+				);
+			});
 		});
 	});
 });
