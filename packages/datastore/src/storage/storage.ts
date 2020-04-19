@@ -190,7 +190,7 @@ class Storage implements StorageFacade {
 	}
 
 	observe<T extends PersistentModel>(
-		modelConstructor?: PersistentModelConstructor<T>,
+		modelConstructor?: PersistentModelConstructor<T extends PersistentModel ? T : never>,
 		predicate?: ModelPredicate<T>,
 		skipOwn?: Symbol
 	): Observable<SubscriptionMessage<PersistentModelConstructor<T extends PersistentModel ? T : never>, T>> {
@@ -326,7 +326,7 @@ class ExclusiveStorage implements StorageFacade {
 	}
 
 	observe<T extends PersistentModel>(
-		modelConstructor?: PersistentModelConstructor<T>,
+		modelConstructor?: PersistentModelConstructor<T extends PersistentModel ? T : never>,
 		predicate?: ModelPredicate<T>,
 		skipOwn?: Symbol
 	): Observable<SubscriptionMessage<PersistentModelConstructor<T extends PersistentModel ? T : never>, T>> {

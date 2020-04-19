@@ -566,9 +566,9 @@ const observe: {
 			await start();
 
 			handle = storage
-				.observe(modelConstructor, <any>predicate) // TODO: Fix type
+				.observe(modelConstructor, predicate)
 				.filter(({ model }) => namespaceResolver(model) === USER)
-				.subscribe(<any>observer); // TODO: Fix type
+				.subscribe(observer);
 		})();
 
 		return () => {
