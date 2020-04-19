@@ -351,33 +351,33 @@ describe('DataStore tests', () => {
 
 		describe('Query with generic type', () => {
 			test('query types are correct', async () => {
-				const allModels = await DataStore.query<typeof Model>(Model);
+				const allModels = await DataStore.query<Model>(Model);
 				expectType<Model[]>(allModels);
 			});
 			test('query types are correct', async () => {
-				const oneModelById = await DataStore.query<typeof Model>(Model, 'someid');
+				const oneModelById = await DataStore.query<Model>(Model, 'someid');
 				expectType<Model>(oneModelById);
 			});
 			test('query types are correct', async () => {
-				const [oneModelByIdWithCriteria] = await DataStore.query<typeof Model>(Model, c =>
+				const [oneModelByIdWithCriteria] = await DataStore.query<Model>(Model, c =>
 					c.id('eq', 'someid')
 				);
 				expectType<Model>(oneModelByIdWithCriteria);
 			});
 			test('query types are correct', async () => {
-				const [oneModelWithCriteria] = await DataStore.query<typeof Model>(Model, c =>
+				const [oneModelWithCriteria] = await DataStore.query<Model>(Model, c =>
 					c.field1('eq', 'somecontent')
 				);
 				expectType<Model>(oneModelWithCriteria);
 			});
 			test('query types are correct', async () => {
-				const multiModelWithCriteria2 = await DataStore.query<typeof Model>(Model, c =>
+				const multiModelWithCriteria2 = await DataStore.query<Model>(Model, c =>
 					c.field1('contains', 'something')
 				);
 				expectType<Model[]>(multiModelWithCriteria2);
 			});
 			test('query types are correct', async () => {
-				const allModelsPaginatedAwait = await DataStore.query<typeof Model>(
+				const allModelsPaginatedAwait = await DataStore.query<Model>(
 					Model,
 					Predicates.ALL,
 					{ page: 0, limit: 20 }

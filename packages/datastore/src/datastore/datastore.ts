@@ -526,10 +526,11 @@ const observe: {
 	idOrCriteria?: string | ProducerModelPredicate<T>
 ): Observable<SubscriptionMessage<C, T>> => {
 	let predicate: ModelPredicate<T>;
-	
-	const modelConstructor: C = modelOrConstructor && isValidModelConstructor(modelOrConstructor)
-		? modelOrConstructor
-		: undefined;
+
+	const modelConstructor: C =
+		modelOrConstructor && isValidModelConstructor(modelOrConstructor)
+			? modelOrConstructor
+			: undefined;
 
 	if (idOrCriteria !== undefined && modelConstructor === undefined) {
 		const msg = 'Cannot provide criteria without a modelConstructor';
@@ -579,19 +580,19 @@ const observe: {
 };
 
 const query: {
-	<T extends PersistentModelConstructor<any>>(
-		modelConstructor: T extends PersistentModelConstructor<any> ? T : never,
+	<T extends PersistentModel>(
+		modelConstructor: PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		>,
 		id: string
 	): Promise<
 		(T extends PersistentModelConstructor<infer X> ? X : never) | undefined
 	>;
-	<T extends PersistentModelConstructor<any>>(
-		modelConstructor: T extends PersistentModelConstructor<any> ? T : never,
-		criteria?:
-			| ProducerModelPredicate<
-					T extends PersistentModelConstructor<infer X> ? X : never
-			  >
-			| typeof PredicateAll,
+	<T extends PersistentModel>(
+		modelConstructor: PersistentModelConstructor<
+			T extends PersistentModel ? T : never
+		>,
+		criteria?: ProducerModelPredicate<T> | typeof PredicateAll,
 		pagination?: PaginationInput
 	): Promise<
 		((T extends PersistentModelConstructor<infer X> ? X : never) | undefined)[]
