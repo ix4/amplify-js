@@ -22,7 +22,7 @@ import { isModelConstructor, STORAGE, validatePredicate } from '../util';
 import { Adapter } from './adapter';
 import getDefaultAdapter from './adapter/getDefaultAdapter';
 
-export type StorageSubscriptionMessage = SubscriptionMessage<any> & {
+export type StorageSubscriptionMessage = SubscriptionMessage<any, any> & {
 	mutator?: Symbol;
 };
 
@@ -193,7 +193,7 @@ class Storage implements StorageFacade {
 		modelConstructor?: PersistentModelConstructor<T>,
 		predicate?: ModelPredicate<T>,
 		skipOwn?: Symbol
-	): Observable<SubscriptionMessage<T>> {
+	): Observable<SubscriptionMessage<PersistentModelConstructor<T extends PersistentModel ? T : never>, T>> {
 		const listenToAll = !modelConstructor;
 		const hasPredicate = !!predicate;
 
@@ -329,7 +329,7 @@ class ExclusiveStorage implements StorageFacade {
 		modelConstructor?: PersistentModelConstructor<T>,
 		predicate?: ModelPredicate<T>,
 		skipOwn?: Symbol
-	): Observable<SubscriptionMessage<T>> {
+	): Observable<SubscriptionMessage<PersistentModelConstructor<T extends PersistentModel ? T : never>, T>> {
 		return this.storage.observe(modelConstructor, predicate, skipOwn);
 	}
 

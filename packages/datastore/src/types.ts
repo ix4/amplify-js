@@ -152,10 +152,10 @@ export function isEnumFieldType(obj: any): obj is EnumFieldType {
 type ModelField = {
 	name: string;
 	type:
-		| keyof Omit<typeof GraphQLScalarType, 'getJSType'>
-		| ModelFieldType
-		| NonModelFieldType
-		| EnumFieldType;
+	| keyof Omit<typeof GraphQLScalarType, 'getJSType'>
+	| ModelFieldType
+	| NonModelFieldType
+	| EnumFieldType;
 	isArray: boolean;
 	isRequired?: boolean;
 	association?: ModelAssociation;
@@ -165,10 +165,10 @@ type ModelField = {
 
 //#region Model definition
 export type NonModelTypeConstructor<T> = {
-	new (init: T): T;
+	new(init: T): T;
 };
 export type PersistentModelConstructor<T extends PersistentModel> = {
-	new (init: ModelInit<T>): T;
+	new(init: ModelInit<T>): T;
 	copyOf(src: T, mutator: (draft: MutableModel<T>) => T | void): T;
 };
 export type TypeConstructorMap = Record<
@@ -179,8 +179,8 @@ export type PersistentModel = Readonly<{ id: string } & Record<string, any>>;
 export type ModelInit<T> = Omit<T, 'id'>;
 type DeepWritable<T> = {
 	-readonly [P in keyof T]: T[P] extends TypeName<T[P]>
-		? T[P]
-		: DeepWritable<T[P]>;
+	? T[P]
+	: DeepWritable<T[P]>;
 };
 export type MutableModel<T> = Omit<DeepWritable<T>, 'id'>;
 
@@ -200,12 +200,15 @@ export enum OpType {
 	DELETE = 'DELETE',
 }
 
-export type SubscriptionMessage<T extends PersistentModel> = {
-	opType: OpType;
-	element: T;
-	model: PersistentModelConstructor<T>;
-	condition: PredicatesGroup<T> | null;
-};
+export type SubscriptionMessage<
+	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+	T
+	> = {
+		opType: OpType;
+		element: T;
+		model: C;
+		condition: PredicatesGroup<T extends PersistentModel ? T : never> | null;
+	};
 //#endregion
 
 //#region Predicates
@@ -213,11 +216,11 @@ export type PredicateExpression<M extends PersistentModel, FT> = TypeName<
 	FT
 > extends keyof MapTypeToOperands<FT>
 	? (
-			operator: keyof MapTypeToOperands<FT>[TypeName<FT>],
-			operand: MapTypeToOperands<FT>[TypeName<FT>][keyof MapTypeToOperands<
-				FT
-			>[TypeName<FT>]]
-	  ) => ModelPredicate<M>
+		operator: keyof MapTypeToOperands<FT>[TypeName<FT>],
+		operand: MapTypeToOperands<FT>[TypeName<FT>][keyof MapTypeToOperands<
+			FT
+		>[TypeName<FT>]]
+	) => ModelPredicate<M>
 	: never;
 
 type EqualityOperators<T> = {
@@ -321,15 +324,15 @@ export enum QueryOne {
 
 export type GraphQLCondition = Partial<
 	| {
-			[field: string]: {
-				[operator: string]: string | number | [number, number];
-			};
-	  }
+		[field: string]: {
+			[operator: string]: string | number | [number, number];
+		};
+	}
 	| {
-			and: [GraphQLCondition];
-			or: [GraphQLCondition];
-			not: GraphQLCondition;
-	  }
+		and: [GraphQLCondition];
+		or: [GraphQLCondition];
+		not: GraphQLCondition;
+	}
 >;
 
 //#endregion

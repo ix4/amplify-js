@@ -10,6 +10,7 @@ import {
 	PersistentModelConstructor,
 	Schema,
 	NonModelTypeConstructor,
+	PersistentModel,
 } from '../src/types';
 import { ExclusiveStorage as StorageType } from '../src/storage/storage';
 import Observable from 'zen-observable-ts';
@@ -320,6 +321,107 @@ describe('DataStore tests', () => {
 
 			const allModelsPaginatedAwait = await DataStore.query(Model, Predicates.ALL, { page: 0, limit: 20 });
 			expectType<Model[]>(allModelsPaginatedAwait);
+		});
+
+		test("query types are correct (passing generic type)", async () => {
+			let model: Model;
+
+			jest.resetModules();
+			jest.doMock('../src/storage/storage', () => {
+				const mock = jest.fn().mockImplementation(() => ({
+					runExclusive: jest.fn(() => [model]),
+					query: jest.fn(() => [model]),
+				}));
+
+				(<any>mock).getNamespace = () => ({ models: {} });
+
+				return { ExclusiveStorage: mock };
+			});
+			({ initSchema, DataStore } = require('../src/datastore/datastore'));
+
+			const classes = initSchema(testSchema());
+
+			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
+
+			model = new Model({
+				field1: 'Some value',
+			});
+
+			const allModels = await DataStore.query<typeof Model>(Model);
+			expectType<Model[]>(allModels);
+
+			const oneModelById = await DataStore.query<typeof Model>(Model, 'someid');
+			expectType<Model>(oneModelById);
+
+			const [oneModelByIdWithCriteria] = await DataStore.query<typeof Model>(Model, c => c.id('eq', 'someid'));
+			expectType<Model>(oneModelByIdWithCriteria);
+
+			const [oneModelWithCriteria] = await DataStore.query<typeof Model>(Model, c => c.field1('eq', 'somecontent'));
+			expectType<Model>(oneModelWithCriteria);
+
+			const multiModelWithCriteria2 = await DataStore.query<typeof Model>(Model, c => c.field1('contains', 'something'));
+			expectType<Model[]>(multiModelWithCriteria2);
+
+			const allModelsPaginatedAwait = await DataStore.query<typeof Model>(Model, Predicates.ALL, { page: 0, limit: 20 });
+			expectType<Model[]>(allModelsPaginatedAwait);
+		});
+
+		test("observe types are correct", async () => {
+			let model: Model;
+
+			jest.resetModules();
+			jest.doMock('../src/storage/storage', () => {
+				const mock = jest.fn().mockImplementation(() => ({
+					runExclusive: jest.fn(() => [model]),
+					query: jest.fn(() => [model]),
+				}));
+
+				(<any>mock).getNamespace = () => ({ models: {} });
+
+				return { ExclusiveStorage: mock };
+			});
+			({ initSchema, DataStore } = require('../src/datastore/datastore'));
+
+			const classes = initSchema(testSchema());
+
+			const { Model } = classes as { Model: PersistentModelConstructor<Model> };
+
+			model = new Model({
+				field1: 'Some value',
+			});
+
+			// subscribe to all models
+			DataStore.observe().subscribe(({ element, model }) => {
+				expectType<PersistentModelConstructor<PersistentModel>>(model);
+				expectType<PersistentModel>(element);
+			});
+
+			// subscribe to model instance
+			DataStore.observe(model).subscribe(({ element, model }) => {
+				expectType<PersistentModelConstructor<Model>>(model);
+				expectType<Model>(element);
+			});
+
+			// subscribe to model instance using generic type
+			DataStore.observe<typeof Model>(model).subscribe(({ element, model }) => {
+				expectType<PersistentModelConstructor<Model>>(model);
+				expectType<Model>(element);
+			});
+
+			// const oneModelById = await DataStore.query(Model, 'someid');
+			// expectType<Model>(oneModelById);
+
+			// const [oneModelByIdWithCriteria] = await DataStore.query(Model, c => c.id('eq', 'someid'));
+			// expectType<Model>(oneModelByIdWithCriteria);
+
+			// const [oneModelWithCriteria] = await DataStore.query(Model, c => c.field1('eq', 'somecontent'));
+			// expectType<Model>(oneModelWithCriteria);
+
+			// const multiModelWithCriteria2 = await DataStore.query(Model, c => c.field1('contains', 'something'));
+			// expectType<Model[]>(multiModelWithCriteria2);
+
+			// const allModelsPaginatedAwait = await DataStore.query(Model, Predicates.ALL, { page: 0, limit: 20 });
+			// expectType<Model[]>(allModelsPaginatedAwait);
 		});
 	});
 });

@@ -490,24 +490,46 @@ const remove: {
 	};
 
 const observe: {
-	(): Observable<SubscriptionMessage<any>>;
-	<T extends PersistentModel>(obj: T): Observable<SubscriptionMessage<T>>;
-	<T extends PersistentModel, C = PersistentModelConstructor<T>>(
-		modelConstructor: C,
-		id: string
-	): Observable<SubscriptionMessage<T>>;
-	<T extends PersistentModel, C = PersistentModelConstructor<T>>(
-		modelConstructor: C
-	): Observable<SubscriptionMessage<T>>;
-	<T extends PersistentModel, C = PersistentModelConstructor<T>>(
-		modelConstructor: C,
-		criteria: ProducerModelPredicate<T>
-	): Observable<SubscriptionMessage<T>>;
-} = <T extends PersistentModel>(
-	modelConstructor?: PersistentModelConstructor<T>,
-	idOrCriteria?: string | ProducerModelPredicate<T>
+	<
+		C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+		T = PersistentModel
+		>(): Observable<SubscriptionMessage<C, T>>;
+	<
+		C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+		T = PersistentModel
+		>(obj: T): Observable<SubscriptionMessage<C, T>>;
+	// <
+	// 	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+	// 	T = PersistentModel
+	// 	>(
+	// 	obj: T
+	// ): Observable<SubscriptionMessage<C>>;
+	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
+	// 	modelConstructor: C,
+	// 	id: string
+	// ): Observable<SubscriptionMessage<T>>;
+	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
+	// 	modelConstructor: C
+	// ): Observable<SubscriptionMessage<T>>;
+	// <T extends PersistentModel, C = PersistentModelConstructor<T>>(
+	// 	modelConstructor: C,
+	// 	criteria: ProducerModelPredicate<T>
+	// ): Observable<SubscriptionMessage<T>>;
+} = <
+	C extends PersistentModelConstructor<T extends PersistentModel ? T : never>,
+	T = PersistentModel
+>(
+	modelConstructor?: C,
+	idOrCriteria?:
+		| string
+		| ProducerModelPredicate<
+			T extends PersistentModelConstructor<infer X> ? X : never
+		>
 ) => {
-		let predicate: ModelPredicate<T>;
+		let predicate: any; // TODO: Fix type
+		// let predicate: ModelPredicate<
+		// 	T extends PersistentModelConstructor<infer X> ? X : never
+		// >;
 
 		if (idOrCriteria !== undefined && modelConstructor === undefined) {
 			const msg = 'Cannot provide criteria without a modelConstructor';
@@ -523,10 +545,9 @@ const observe: {
 		}
 
 		if (typeof idOrCriteria === 'string') {
-			predicate = ModelPredicateCreator.createForId<T>(
-				getModelDefinition(modelConstructor),
-				idOrCriteria
-			);
+			predicate = ModelPredicateCreator.createForId<
+				T extends PersistentModelConstructor<infer X> ? X : never
+			>(getModelDefinition(modelConstructor), idOrCriteria);
 		} else {
 			predicate =
 				modelConstructor &&
@@ -536,16 +557,16 @@ const observe: {
 				);
 		}
 
-		return new Observable<SubscriptionMessage<any>>(observer => {
+		return new Observable<SubscriptionMessage<C, T>>(observer => {
 			let handle: ZenObservable.Subscription;
 
 			(async () => {
 				await start();
 
 				handle = storage
-					.observe(modelConstructor, predicate)
+					.observe(modelConstructor, <any>predicate) // TODO: Fix type
 					.filter(({ model }) => namespaceResolver(model) === USER)
-					.subscribe(observer);
+					.subscribe(<any>observer); // TODO: Fix type
 			})();
 
 			return () => {
@@ -557,15 +578,23 @@ const observe: {
 	};
 
 const query: {
-	<T>(
+	<T extends PersistentModelConstructor<any>>(
 		modelConstructor: T extends PersistentModelConstructor<any> ? T : never,
 		id: string
-	): Promise<T extends PersistentModelConstructor<infer X> ? X : never | undefined>;
-	<T>(
+	): Promise<
+		(T extends PersistentModelConstructor<infer X> ? X : never) | undefined
+	>;
+	<T extends PersistentModelConstructor<any>>(
 		modelConstructor: T extends PersistentModelConstructor<any> ? T : never,
-		criteria?: ProducerModelPredicate<T extends PersistentModelConstructor<infer X> ? X : never> | typeof PredicateAll,
+		criteria?:
+			| ProducerModelPredicate<
+				T extends PersistentModelConstructor<infer X> ? X : never
+			>
+			| typeof PredicateAll,
 		pagination?: PaginationInput
-	): Promise<(T extends PersistentModelConstructor<infer X> ? X : never | undefined)[]>;
+	): Promise<
+		((T extends PersistentModelConstructor<infer X> ? X : never) | undefined)[]
+	>;
 } = async <T extends PersistentModel>(
 	modelConstructor: PersistentModelConstructor<T>,
 	idOrCriteria?: string | ProducerModelPredicate<T> | typeof PredicateAll,
